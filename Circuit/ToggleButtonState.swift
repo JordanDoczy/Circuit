@@ -13,6 +13,15 @@ protocol ToggleButtonState: Hashable {
     var direction: Direction { get }
 }
 
+struct ButtonState: Identifiable {
+    var id = UUID()
+    var state: UInt8?
+    
+    init(state: UInt8?) {
+        self.state = state
+    }
+}
+
 /// storage as a bit mask
 /// bit 1 controls the toggle state isOn
 /// bit 2 controls the active state isActive
@@ -38,6 +47,10 @@ extension UInt8: ToggleButtonState {
             (self & StateConstants.isOn) > 0
         }
         set {
+            // TODO: fix
+            guard newValue != isOn else {
+                return
+            }
             self ^= StateConstants.isOn
         }
     }

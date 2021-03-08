@@ -11,19 +11,25 @@ struct ToggleButtonGrid: View {
 
     @EnvironmentObject var model: Model
     
-    var layout: [GridItem] = [
-        GridItem(.flexible()),
-        GridItem(.flexible()),
-        GridItem(.flexible())
-    ]
+    var layout: [GridItem] {
+        (0..<model.columns).map { _ in GridItem(.flexible()) }
+    }
 
     var body: some View {
         ZStack {
             LinearGradient(Color.darkStart1, Color.darkEnd1)
             LazyVGrid(columns: layout, spacing: 50) {
                 ForEach (model.buttons.indices) { i in
-                    ToggleButton(state: $model.buttons[i]) {
-                        model.buttons[i].direction = .w
+                    if model.buttons[i] == Model.nilVal {
+                        Spacer()
+                    } else {
+                        ToggleButton(state: $model.buttons[i]) {
+                            getNeighbors(from: i).forEach { index in
+                                model.buttons[index].isOn = true
+                            }
+                            
+                            //model.buttons[i].direction = .w
+                        }
                     }
                 }
                 Button("Print") {
@@ -35,12 +41,58 @@ struct ToggleButtonGrid: View {
         }
         .ignoresSafeArea(.all)
     }
+    
+    func getNeighbors(from index: Int) -> [Int] {
+        
+        let size = model.buttons.count
+        let columns = model.columns
+        let direction = model.buttons[index].direction
+        let row = index / columns
+        
+        switch(direction) {
+        case .n:
+            var indicies: [Int] = []
+            var i = index - columns
+            while i > 0 {
+                indicies.append(i)
+                i -= columns
+            }
+            return indicies
+        case .s:
+            var indicies: [Int] = []
+            var i = index + columns
+            while i < size {
+                indicies.append(i)
+                i += columns
+            }
+            return indicies
+        case .e:
+            var indicies: [Int] = []
+            var i = index + 1
+            while i < (row+1) * columns {
+                indicies.append(i)
+                i += 1
+            }
+            return indicies
+        case .w:
+            var indicies: [Int] = []
+            var i = index - 1
+            while i > (row+1) {
+                indicies.append(i)
+                i -= 1
+            }
+            return indicies
+        case .none:
+            return []
+        }
+    }
+
 }
 
 struct ToggleButton: View {
 
     @Binding var state: UInt8
-    var action: () -> Void
+    var action: (() -> Void)?
 
     var body: some View {
         Toggle(isOn: $state.isOn) {
@@ -48,19 +100,19 @@ struct ToggleButton: View {
                 .foregroundColor(.white)
         }
         .toggleStyle(ToggleButtonStyle() {
-          action()
+          action?()
         })
     }
 }
 
 struct ToggleButtonStyle: ToggleStyle {
     
-    var action: () -> Void
+    var action: (() -> Void)?
     
     func makeBody(configuration: Self.Configuration) -> some View {
         Button(action: {
             configuration.isOn.toggle()
-            action()
+            action?()
         }) {
             configuration.label
                 .padding(30)
